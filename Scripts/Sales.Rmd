@@ -1,0 +1,199 @@
+---
+title: "Sales Analysis"
+author: "Joyce"
+date: "2023-03-12"
+output:
+    html_document:
+      toc: true
+      code_folding: hide
+---
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning= FALSE, message =FALSE, header=TRUE)
+```
+
+                  
+# Exploring Market Basket Analysis in Istanbul Retail Data
+
+#####  Welcome to the shopping world of Istanbul! Our dataset contains shopping information from 10 different shopping malls between 2021 and 2023. The dataset includes essential information such as invoice numbers, customer IDs, age, gender, payment methods, product categories, quantity, price, order dates, and shopping mall locations.Let's explore the dataset and discover the fascinating world of Istanbul shopping!
+
+<img src="C://Users//LENOVO//Downloads//mall.jpg" width=500>
+
+# Load the packages
+```{r}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(pacman)
+p_load(ggplot2, data.table, rgl, summarytools, GGally, factoextra, cluster, tidyverse)
+library(summarytools)
+print("Required Packages are loaded" )
+```
+
+# Read the   data set
+```{r}
+sales <- read.csv('C:\\Users\\LENOVO\\Downloads\\customer_shopping_data.csv') 
+head(sales)
+```
+
+# Statistics of the Dataset
+```{r}
+summary(sales)
+str(sales)
+print(dfSummary(sales), method = 'render')
+
+```
+
+# Exploratory Data Analysis
+
+### Distribution of Age 
+```{r }
+ggplot(sales, 
+       aes(x = age, 
+           fill =gender)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribution of Age")
+```
+
+
+###  Let's know who shop more?
+```{r}
+ggplot(sales, aes(x = gender)) + 
+ geom_bar(fill = "cornflowerblue", 
+           color="black") +
+  labs(title = "  Total no.of shoppers", x = "Gender")
+
+```
+
+###  Preferred Categories by Gender
+```{r}
+ggplot(sales, aes(x = quantity, y = price,color=category)) +
+  geom_point(size=2)   + geom_smooth() + facet_grid(gender~.)
+  labs(title = "Preferred Categories by Gender", x = "Quantity", y = "Price")
+```
+
+### Average Price for each category
+```{r}
+ggplot(sales, aes(x = category, y = price, fill = category)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape = 18, size = 3, color = "white") +
+  labs(title = "Average Price by Category", x = "Category", y = "Price") +
+  theme(legend.position = "none")
+```
+
+
+### Total Sales of each Category
+
+```{r}
+
+# group the data by category and sum the quantity and price
+category_sales <- aggregate(cbind(quantity, price) ~ category, data = sales, FUN = sum)
+
+# calculate the total sales for each category
+category_sales$total_sales <- category_sales$quantity * category_sales$price
+
+# sort the categories by total sales (descending order)
+category_sales <- category_sales[order(category_sales$total_sales, decreasing = TRUE),]
+
+# print the top 5 categories by total sales
+head(category_sales, n = 5)
+# create an interactive scatter plot of category vs. total sales
+gg <- ggplot(data = category_sales, aes(x = category, y = total_sales, text = paste("Category: ", category, "<br>Total Sales: $", total_sales))) +
+  geom_point() +
+  labs(title = "Category vs. Total Sales",
+       x = "Category",
+       y = "Total Sales") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# convert the ggplot object to a plotly object and add tooltips
+ggplotly(gg, tooltip = c("text")) 
+
+```
+
+### Performance of Malls across years
+```{r}
+# Create a new column for the year
+sales$year <- lubridate::year(as.Date(sales$invoice_date, "%d/%m/%Y"))
+
+# Aggregate sales by mall and year
+mall_sales <- aggregate(price ~ shopping_mall + year, data = sales, sum)
+
+ggplot(mall_sales, aes(x = year, y = price, color = shopping_mall)) +
+  geom_line() +
+  labs(title = "Total Sales by Mall and Year",
+       x = "Year",
+       y = "Total Sales",
+       color = "shopping Mall") +
+  theme_bw()
+
+
+```
+
+
+
+# Smooth Layer with regression
+```{r}
+sales$year1 <- factor(sales$year)
+
+ggplot(sales, aes(x = age, y = price , color=year1)) +
+  geom_smooth(method = "lm") +
+  labs(title = "Linear Regression Plot of Age vs. Price",
+       x = "Age",
+       y = "Price")
+```
+
+
+
+# Clustering
+```{r}
+# subset the data to only include quantity and price columns
+data <- subset(sales, select = c(quantity, price))
+
+# standardize the data to have zero mean and unit variance
+data_scaled <- scale(data)
+
+# perform k-means clustering with k = 3
+set.seed(123)
+kmeans_obj <- kmeans(data_scaled, centers = 3)
+
+# add cluster labels to the original data
+sales$cluster <- kmeans_obj$cluster
+
+# create a scatter plot with ggplot
+p <- ggplot(sales, aes(x = quantity, y = price, color = factor(cluster))) +
+  geom_point() +
+  labs(title = "K-Means Clustering Results",
+       x = "Quantity",
+       y = "Price",
+       color = "Cluster") +
+  theme_minimal()
+
+# convert ggplot to plotly and make it interactive
+p <- ggplotly(p, tooltip = c("text"))
+p <- layout(p, title = "K-Means Clustering Results")
+p
+```
+
+# Clustering in  the high-dimensional space of the data
+
+```{r}
+ #subset the data to only include age and price columns
+data <- subset(sales, select = c(age, price))
+
+# standardize the data to have zero mean and unit variance
+data_scaled <- scale(data)
+
+# perform k-means clustering with k = 3
+set.seed(123)
+kmeans_obj <- kmeans(data_scaled, centers = 3)
+
+# add cluster labels to the original data
+sales$cluster <- kmeans_obj$cluster
+
+# compute PCA for data visualization
+pca <- prcomp(data_scaled)
+
+# plot the first two principal components colored by cluster
+fviz_pca_ind(pca, geom = "point", habillage = sales$cluster,
+             ggtheme = theme_minimal())
+```
+
