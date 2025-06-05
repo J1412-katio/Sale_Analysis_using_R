@@ -1,6 +1,6 @@
 ---
 title: "Sales Analysis"
-author: "Joyce"
+author: ""
 date: "2023-03-12"
 output:
     html_document:
