@@ -113,5 +113,5 @@ This project aims to analyze real-world consumer shopping data to:
 
 ## 🤝 Connect
 
+📢 *“Retail is detail.” Let’s decode it with data!*  
 Feel free to connect and discuss the project.
-📢 *“Retail is detail.” Let’s decode it with data!*
